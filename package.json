@@ -1,0 +1,29 @@
+{
+  "name": "@jman.dev/sudoku.v2",
+  "type": "module",
+  "scripts": {
+    "script": "node --no-warnings --loader ts-node/esm",
+    "bundle": "npm run script -- scripts/bundle.ts",
+    "serve": "serve public",
+    "dev": "concurrently 'npm run bundle -- --watch' 'npm run serve'"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.14",
+    "@types/react-dom": "^18.0.5",
+    "@vanilla-extract/css": "^1.7.2",
+    "@vanilla-extract/dynamic": "^2.0.2",
+    "@vanilla-extract/esbuild-plugin": "^2.1.0",
+    "concurrently": "^7.2.2",
+    "esbuild": "^0.14.47",
+    "mobx": "^6.6.0",
+    "mobx-react-lite": "^3.4.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "serve": "^13.0.2",
+    "ts-node": "^10.8.1",
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "valtio": "^1.6.1"
+  }
+}
