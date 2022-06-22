@@ -6,16 +6,42 @@ import React, {
   useRef,
   useState,
 } from "react";
+import I from "immutable";
 import { useSnapshot } from "valtio";
 import { SudokuInstance } from "./state/sudoku-instance";
 import boards from "./sample-boards";
 
 import * as s from "./board.css";
-import { gcn, useOutsideClick } from "./utils";
+import {
+  gcn,
+  rateLimit,
+  useMouseDown,
+  useOutsideClick,
+  useStateRef,
+} from "./utils";
 
 type SudokuBoardProps = { instance: SudokuInstance };
 
+function useKeyboardListener({
+  down,
+  up,
+}: {
+  down: (e: KeyboardEvent) => void;
+  up: (e: KeyboardEvent) => void;
+}) {
+  useEffect(() => {
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, [down]);
+
+  useEffect(() => {
+    document.addEventListener("keydown", up);
+    return () => document.removeEventListener("keydown", up);
+  }, [up]);
+}
+
 const ADD_HEADERS = true;
+const NOTE_POSITIONS = [0, 4, 1, 6, 8, 7, 2, 5, 3] as const;
 const HEADERS = Array.from({ length: 10 }, (_, i) => i || null);
 const getRandomBoard = (): (number | null)[] => {
   const list = Object.values(boards);
@@ -41,25 +67,83 @@ export const SudokuBoard: FC<SudokuBoardProps> = (props) => {
   const { instance: writeInstance } = props;
   const readInstance = useSnapshot(writeInstance);
   const [hoveredCell, setHoveredCell] = useState<number>(-1);
-  const [selectedCell, setSelectedCell] = useState<number>(-1);
+  const mouseDownRef = useMouseDown();
+  const [selectedCells, setSelectedCells] = useState(I.Set<number>());
+  // const [selectedCell, setSelectedCell] = useState<number>(-1);
+  // const selectedCellRef = useRef(selectedCell);
+  // selectedCellRef.current = selectedCell;
+  const [modifier, setModifier] = useState<"Shift" | "Control" | "Alt">();
 
   const {
     row: hrow,
     col: hcol,
     square: hsquare,
-  } = getRowColSquare(selectedCell);
+  } = getRowColSquare(hoveredCell);
 
   useEffect(() => {
     writeInstance.setBoard(getRandomBoard());
   }, []);
 
+  console.log(selectedCells);
+
+  /* useKeyboardListener({
+    down: useCallback(
+      (e) => {
+        const { key } = e;
+        if (key === "Shift" || key === "Control" || key === "Alt") {
+          setModifier(key);
+        } else {
+          const num = Number(key);
+          if (Number.isFinite(num) && num >= 1 && num <= 9) {
+            // press... Depending on active modifier, fill in cell, note, or strong note
+            const i = selectedCellRef.current;
+            if (i !== -1) {
+              writeInstance.cells[i].notes.toggle(num);
+              writeInstance.cells[i].strongNotes.toggle(num);
+            }
+          }
+        }
+      },
+      [setModifier]
+    ),
+    up: useCallback(
+      (e) => {
+        const { key } = e;
+        if (key === "Shift" || key === "Control" || key === "Alt") {
+          // Only clear if modifier is the same as the released key
+          setModifier((prev) => (prev === key ? undefined : prev));
+        }
+      },
+      [setModifier]
+    ),
+  }); */
+
+  useEffect(() => {
+    const listener = rateLimit((e: MouseEvent) => {
+      const cell = (e.target as HTMLElement).closest("[data-cell]");
+      if (cell) {
+        const i = Number(cell.getAttribute("data-cell"));
+        if (Number.isFinite(i) && i >= 0 && i < writeInstance.cells.length) {
+          if (mouseDownRef.current) {
+            console.log("adding");
+            setSelectedCells((prev) => prev.add(i));
+          }
+          setHoveredCell(i);
+          return;
+        }
+      }
+      setHoveredCell(-1);
+    }, 10);
+    document.addEventListener("mousemove", listener);
+    return () => document.removeEventListener("mousemove", listener);
+  }, []);
   const gridRef = useRef<HTMLDivElement>();
-  useOutsideClick(
-    gridRef,
-    useCallback(() => {
-      setSelectedCell(-1);
-    }, [setSelectedCell])
-  );
+  // useOutsideClick(
+  //   gridRef,
+  //   useCallback(() => {
+  //     setSelectedCell(-1);
+  //   }, [setSelectedCell])
+  // );
 
   return (
     <div className={s.wrapper}>
@@ -69,7 +153,7 @@ export const SudokuBoard: FC<SudokuBoardProps> = (props) => {
       <div
         ref={gridRef}
         className={gcn(ADD_HEADERS ? s.grid : s.gridNoHeaders)}
-        onMouseOut={() => setHoveredCell(-1)}
+        // onMouseOut={() => setHoveredCell(-1)}
       >
         {ADD_HEADERS &&
           HEADERS.map((c, i) => (
@@ -89,8 +173,9 @@ export const SudokuBoard: FC<SudokuBoardProps> = (props) => {
               )}
               <div
                 className={s.cell}
-                onMouseOver={() => setHoveredCell(i)}
-                onClick={() => setSelectedCell(i)}
+                // onMouseOver={() => setHoveredCell(i)}
+                // onClick={() => setSelectedCell(i)}
+                data-cell={i}
               >
                 <div
                   className={gcn(
@@ -106,6 +191,19 @@ export const SudokuBoard: FC<SudokuBoardProps> = (props) => {
                     hrow === row && hcol === col && "bg-hovered"
                   )}
                 >
+                  <div
+                    className={gcn(
+                      s.innerCellSelected,
+                      ...(selectedCells.has(i)
+                        ? [
+                            (row === 0 || !selectedCells.has(i - 9)) && "bt",
+                            (row === 8 || !selectedCells.has(i + 9)) && "bb",
+                            (col === 0 || !selectedCells.has(i - 1)) && "bl",
+                            (col === 8 || !selectedCells.has(i + 1)) && "br",
+                          ]
+                        : [])
+                    )}
+                  />
                   {cell.value ? (
                     <div
                       className={gcn(s.innerCellValue, cell.value && "default")}
@@ -114,13 +212,26 @@ export const SudokuBoard: FC<SudokuBoardProps> = (props) => {
                     </div>
                   ) : (
                     <>
-                      <div className={s.innerCellNote}>
-                        {[...cell.notes].map((note) => (
-                          <div key={note}>{note}</div>
+                      <div className={gcn(s.innerCellNote)}>
+                        {NOTE_POSITIONS.map((position) => (
+                          <div key={position} className={s.noteItem}>
+                            {[...cell.notes.values()][position]}
+                          </div>
                         ))}
                       </div>
-                      <div className={s.innerCellStrongNote}>
-                        {cell.strongNotes}
+                      <div
+                        className={gcn(
+                          s.innerCellStrongNote,
+                          cell.notes.size > 3 && "font-sm",
+                          cell.notes.size > 5 && "font-xs",
+                          cell.notes.size > 7 && "font-xxs"
+                        )}
+                      >
+                        {[...cell.strongNotes].map((note) => (
+                          <div key={note} className={s.noteItem}>
+                            {note}
+                          </div>
+                        ))}
                       </div>
                     </>
                   )}

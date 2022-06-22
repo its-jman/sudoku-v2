@@ -14,11 +14,11 @@ const RED_600 = "#dc2626";
 const GREEN_600 = "#16a34a";
 
 const gridStyle: ComplexStyleRule = {
-  width: 9 * 55 + 35,
+  width: 9 * 55,
   userSelect: "none",
   display: "grid",
-  gridTemplateRows: "35px repeat(9, minmax(0, 1fr))",
-  gridTemplateColumns: "35px repeat(9, minmax(0, 1fr))",
+  gridTemplateRows: "repeat(9, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(9, minmax(0, 1fr))",
   vars: {
     "--grid-status-color": GREY_900,
   },
@@ -36,18 +36,17 @@ const gridStyle: ComplexStyleRule = {
   },
 };
 
-export const grid = style(gridStyle);
-export const gridNoHeaders = style({
+export const gridNoHeaders = style(gridStyle);
+export const grid = style({
   ...gridStyle,
-  width: 9 * 75,
-  gridTemplateRows: "repeat(9, minmax(0, 1fr))",
-  gridTemplateColumns: "repeat(9, minmax(0, 1fr))",
+  width: (gridStyle.width as number) + 35,
+  gridTemplateRows: "35px repeat(9, minmax(0, 1fr))",
+  gridTemplateColumns: "35px repeat(9, minmax(0, 1fr))",
 });
 
 export const cell = style({
   fontSize: 16,
   aspectRatio: "1",
-  // border: "2px solid lightblue",
   position: "relative",
 });
 
@@ -57,11 +56,6 @@ const abs: ComplexStyleRule = {
   height: "100%",
 };
 
-// const getBorderColor = () =>
-//   game.isSolved ? GREEN_600 : !game.isValid ? RED_600 : GREY_900;
-
-// const standardBorder = `2px solid ${tailwindTheme.colors.gray[600]};`;
-// const solidBorder = `3px solid ${getBorderColor({ game })};`;
 export const innerCell = style({
   ...abs,
   display: "flex",
@@ -102,6 +96,25 @@ export const innerCell = style({
   },
 });
 
+export const innerCellSelected = style({
+  ...abs,
+  border: `0 solid ${colors.blue[400]}`,
+  selectors: {
+    "&.bt": {
+      borderTopWidth: 4,
+    },
+    "&.br": {
+      borderRightWidth: 4,
+    },
+    "&.bb": {
+      borderBottomWidth: 4,
+    },
+    "&.bl": {
+      borderLeftWidth: 4,
+    },
+  },
+});
+
 export const innerCellValue = style({
   ...abs,
   display: "flex",
@@ -115,12 +128,37 @@ export const innerCellValue = style({
     },
   },
 });
+
+export const noteItem = style({
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+});
 export const innerCellNote = style({
   ...abs,
+  padding: 2,
+  color: colors.grey[700],
   display: "grid",
   gridTemplateRows: "repeat(3, minmax(0, 1fr))",
   gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
 });
 export const innerCellStrongNote = style({
   ...abs,
+  padding: 2,
+  color: colors.grey[700],
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  flexWrap: "wrap",
+  selectors: {
+    "&.font-sm": {
+      fontSize: 14,
+    },
+    "&.font-xs": {
+      fontSize: 12,
+    },
+    "&.font-xxs": {
+      fontSize: 8,
+    },
+  },
 });

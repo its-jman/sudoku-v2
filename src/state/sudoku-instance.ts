@@ -1,3 +1,5 @@
+import { proxySet } from "../set";
+
 type Group = Cell[];
 
 abstract class Rule {
@@ -46,8 +48,8 @@ class Cell {
   constructor(
     public value: number | null,
     public groups: Group[] = [],
-    public notes = new Set<number>(),
-    public strongNotes = new Set<number>()
+    public notes = proxySet<number>(),
+    public strongNotes = proxySet<number>()
   ) {}
 }
 
